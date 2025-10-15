@@ -90,7 +90,7 @@ def main():
 
     # --- File Inputs ---
     file_path = "all_feature_data_avg.csv"
-    shapefile_path = "CornBeltCounty.shp"
+    shapefile_path = "._CornBeltCounty.shp"
 
     if file_path and shapefile_path:
         merged_gdf, years = preprocess_data(file_path, shapefile_path)
