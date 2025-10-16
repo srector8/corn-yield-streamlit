@@ -20,12 +20,10 @@ import pydeck as pdk
 import numpy as np
 
 
-# ===============================
 # Preprocessing
-# ===============================
 @st.cache_data
 def preprocess_data(file_path, shapefile_path):
-    """Load and merge CSV with shapefile, simplify geometry."""
+    # Load and merge CSV with shapefile, simplify geometry
     avg_df = pd.read_csv(file_path)
     shp_gdf = gpd.read_file(shapefile_path)
 
@@ -41,11 +39,8 @@ def preprocess_data(file_path, shapefile_path):
     return merged_gdf, years
 
 
-# ===============================
 # Visualization Functions
-# ===============================
 def plot_choropleth(gdf_year, feature, year):
-    """Display the Pydeck choropleth for a given year and feature."""
     # Filter data for the selected year
     gdf_year = gdf_year[gdf_year['year'] == year]
 
@@ -81,21 +76,19 @@ def plot_choropleth(gdf_year, feature, year):
     st.caption(f"Showing **{feature}** for year **{year}**")
 
 
-# ===============================
 # Streamlit App
-# ===============================
 def main():
     st.set_page_config(layout="wide")
     st.title("🌽 US Corn Belt Yield Dashboard")
 
-    # --- File Inputs ---
+    # File Inputs
     file_path = "all_feature_data_avg.csv"
     shapefile_path = "CornBeltCounty.shp"
 
     if file_path and shapefile_path:
         merged_gdf, years = preprocess_data(file_path, shapefile_path)
 
-        # --- Sidebar Controls ---
+        # Sidebar Controls
         st.sidebar.header("Controls")
         year = st.sidebar.slider("Select Year", min_value=min(years), max_value=max(years), value=max(years))
 
@@ -105,15 +98,13 @@ def main():
         ]
         feature = st.sidebar.selectbox("Select Feature", cols_to_use, index=0)
 
-        # --- Plot ---
+        # Plot
         st.header(f"{feature.title()} Map — {year}")
         plot_choropleth(merged_gdf, feature, year)
     else:
         st.info("Please upload both the CSV data and shapefile to continue.")
 
 
-# ===============================
 # Run App
-# ===============================
 if __name__ == "__main__":
     main()
