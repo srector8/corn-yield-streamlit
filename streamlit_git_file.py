@@ -85,7 +85,10 @@ def plot_choropleth(gdf, feature, year):
     r = pdk.Deck(
         layers=[layer],
         initial_view_state=view_state,
-        tooltip={"text": "{county_name}\n" + feature + ": {" + feature + "}"},
+        tooltip={
+            "html": "<b>{county_name}</b><br>" + feature + ": {"+feature+":.2f}",
+            "style": {"backgroundColor": "white", "color": "black"}}
+
     )
 
     # Layout: map left, scale right
