@@ -134,7 +134,10 @@ def plot_choropleth(gdf, feature, year):
     xs, density = kde_1d(vals)
     
     density_df = pd.DataFrame({"value": xs, "density": density})
-    st.line_chart(density_df, x="value", y="density")
+    density_df = density_df.set_index("value")  # Needed for area_chart
+    
+    st.area_chart(density_df)
+
 
 
 
