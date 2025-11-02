@@ -64,7 +64,7 @@ def plot_choropleth(gdf, feature, year):
     gdf_year["__norm"] = (gdf_year[feature] - min_val) / (max_val - min_val + 1e-9)
     gdf_year["color"] = gdf_year["__norm"].apply(lambda x: [int(255 * x), 120, int(255 * (1 - x)), 180])
 
-    gdf_year["value_disp"] = gdf_year[feature].round(2)
+    gdf_year["value_disp"] = gdf_year[feature].round(4)
     
     layer = pdk.Layer(
         "GeoJsonLayer",
@@ -87,7 +87,7 @@ def plot_choropleth(gdf, feature, year):
         layers=[layer],
         initial_view_state=view_state,
         tooltip={
-            "html": "<b>{county_name}</b><br>" + feature + ": {value_disp}",
+            "html": "<b>{NAME_2}</b><br>" + feature + ": {value_disp}",
             "style": {"backgroundColor": "white", "color": "black"}
         },
 )
@@ -100,18 +100,17 @@ def plot_choropleth(gdf, feature, year):
         st.pydeck_chart(r)
         st.caption(f"Showing **{feature}** for **{year}**")
 
-        # --- Continuous Color Scale ---
         st.write("### Color Scale")
         st.image(make_colorbar(), use_column_width=True)
-        st.write(f"{min_val:.2f} ⟶ {max_val:.2f}")
+        st.write(f"{min_val:.4f} ⟶ {max_val:.4f}")
 
     with right:
         st.write("### Values")
-        st.metric("Minimum", f"{min_val:.2f}")
-        st.metric("Maximum", f"{max_val:.2f}")
-        st.metric("Mean", f"{gdf_year[feature].mean():.2f}")
-        st.metric("Median", f"{gdf_year[feature].median():.2f}")
-        st.metric("Std Dev", f"{gdf_year[feature].std():.2f}")
+        st.metric("Minimum", f"{min_val:.4f}")
+        st.metric("Maximum", f"{max_val:.4f}")
+        st.metric("Mean", f"{gdf_year[feature].mean():.4f}")
+        st.metric("Median", f"{gdf_year[feature].median():.4f}")
+        st.metric("Std Dev", f"{gdf_year[feature].std():.4f}")
 
 
 
