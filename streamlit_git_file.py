@@ -44,9 +44,13 @@ def plot_choropleth(gdf, feature, year):
     # Filter data for the selected year
     gdf_year = gdf[gdf['year'] == year].copy()
 
-    # Compute feature min/max for this feature + year only
+    # Compute feature stats for this feature + year only
     min_val = gdf_year[feature].min()
     max_val = gdf_year[feature].max()
+    median_val = gdf_year[feature].median()
+    mean_val = gdf_year[feature].mean()
+    std_val = gdf_year[feature].std()
+
 
     # Normalize feature values to color scale
     gdf_year["__norm"] = (gdf_year[feature] - min_val) / (max_val - min_val + 1e-9)
@@ -84,7 +88,14 @@ def plot_choropleth(gdf, feature, year):
     with right:
         st.markdown(f"### Scale ({feature})")
         st.metric("Min", f"{min_val:.2f}")
+        st.metric("Mean", f"{mean_val:.2f}")
+        st.metric("Median", f"{median_val:.2f}")
         st.metric("Max", f"{max_val:.2f}")
+        st.metric("Standard Deviation", f"{std_val:.2f}")
+
+
+
+
 
 
 
