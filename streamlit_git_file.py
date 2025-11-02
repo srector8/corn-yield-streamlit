@@ -38,72 +38,74 @@ def preprocess_data(file_path, shapefile_path):
 
     return merged_gdf, years
 
-import matplotlib.pyplot as plt
-import seaborn as sns
-from io import BytesIO
+from PIL import Image
 
-def create_colorbar(min_val, max_val, cmap="viridis"):
-    fig, ax = plt.subplots(figsize=(6, 1))
-    fig.subplots_adjust(bottom=0.5)
-
-    # Create a dummy colormap scale from 0–1
-    norm = plt.Normalize(vmin=min_val, vmax=max_val)
-    cb = plt.colorbar(
-        plt.cm.ScalarMappable(norm=norm, cmap=cmap),
-        cax=ax,
-        orientation='horizontal',
-    )
-
-    cb.set_label("Value Scale")
-    buf = BytesIO()
-    fig.savefig(buf, format="png", dpi=200, bbox_inches="tight")
-    plt.close(fig)
-    buf.seek(0)
-    return buf
-
+def make_colorbar():
+    # Horizontal gradient: Blue → Purple → Red
+    width, height = 256, 20
+    colorbar = Image.new("RGBA", (width, height))
+    for x in range(width):
+        r = int(255 * (x / (width - 1)))
+        g = 120
+        b = int(255 * (1 - x / (width - 1)))
+        for y in range(height):
+            colorbar.putpixel((x, y), (r, g, b, 255))
+    return colorbar
 
 
 def plot_choropleth(gdf, feature, year):
+    # Filter for selected year
     gdf_year = gdf[gdf['year'] == year].copy()
 
+    # Feature-specific scaling (important)
     min_val = gdf_year[feature].min()
     max_val = gdf_year[feature].max()
 
-    # Create normalized color
     gdf_year["__norm"] = (gdf_year[feature] - min_val) / (max_val - min_val + 1e-9)
-    gdf_year["color"] = gdf_year["__norm"].apply(
-        lambda x: [int(255 * x), 60, int(255*(1-x)), 180]
-    )
+    gdf_year["color"] = gdf_year["__norm"].apply(lambda x: [int(255 * x), 120, int(255 * (1 - x)), 180])
 
     layer = pdk.Layer(
         "GeoJsonLayer",
         gdf_year,
-        opacity=0.8,
-        stroked=False,
+        opacity=0.75,
+        stroked=True,
         filled=True,
         get_fill_color="color",
+        get_line_color=[0, 0, 0],
         pickable=True,
     )
 
     view_state = pdk.ViewState(
-        latitude=40,
-        longitude=-93,
+        latitude=40.0,
+        longitude=-93.0,
         zoom=4,
         pitch=0,
     )
 
-    deck = pdk.Deck(
+    r = pdk.Deck(
         layers=[layer],
         initial_view_state=view_state,
-        tooltip={"text": "{county_name}\n" + feature + ": {" + feature + "}"}
+        tooltip={"text": "{county_name}\n" + feature + ": {" + feature + "}"},
     )
 
-    st.pydeck_chart(deck)
+    # Layout: map left, scale right
+    left, right = st.columns([4, 1])
 
-    st.image(create_colorbar(min_val, max_val, cmap="viridis"), caption=f"{feature} scale")
+    with left:
+        st.pydeck_chart(r)
+        st.caption(f"Showing **{feature}** for **{year}**")
 
+        # --- Continuous Color Scale ---
+        st.write("### Color Scale")
+        st.image(make_colorbar(), use_column_width=True)
+        st.write(f"{min_val:.2f} ⟶ {max_val:.2f}")
 
-
+    with right:
+        st.write("### Values")
+        st.metric("Minimum", f"{min_val:.2f}")
+        st.metric("Maximum", f"{max_val:.2f}")
+        st.metric("Median", f"{gdf_year[feature].median():.2f}")
+        st.metric("Std Dev", f"{gdf_year[feature].std():.2f}")
 
 
 # Streamlit App
