@@ -83,8 +83,7 @@ def plot_choropleth(gdf, feature, year):
         zoom=4,
         pitch=0,
     )
-
-   r = pdk.Deck(
+    r = pdk.Deck(
         layers=[layer],
         initial_view_state=view_state,
         tooltip={
