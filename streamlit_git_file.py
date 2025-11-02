@@ -40,22 +40,26 @@ def preprocess_data(file_path, shapefile_path):
 
 
 # Visualization Functions
-def plot_choropleth(gdf_year, feature, year):
+def plot_choropleth(gdf, feature, year):
     # Filter data for the selected year
-    gdf_year = gdf_year[gdf_year['year'] == year]
+    gdf_year = gdf[gdf['year'] == year].copy()
 
+    # Compute feature min/max for this feature + year only
     min_val = gdf_year[feature].min()
     max_val = gdf_year[feature].max()
-    norm = (gdf_year[feature] - min_val) / (max_val - min_val)
-    gdf_year["color"] = norm.apply(lambda x: [int(255 * x), 128, int(255 * (1 - x)), 180])
+
+    # Normalize feature values to color scale
+    gdf_year["__norm"] = (gdf_year[feature] - min_val) / (max_val - min_val + 1e-9)
+    gdf_year["color"] = gdf_year["__norm"].apply(lambda x: [int(255 * x), 120, int(255 * (1 - x)), 180])
 
     layer = pdk.Layer(
         "GeoJsonLayer",
         gdf_year,
-        opacity=0.7,
-        stroked=False,
+        opacity=0.75,
+        stroked=True,
         filled=True,
         get_fill_color="color",
+        get_line_color=[0, 0, 0],
         pickable=True,
     )
 
@@ -72,8 +76,16 @@ def plot_choropleth(gdf_year, feature, year):
         tooltip={"text": "{county_name}\n" + feature + ": {" + feature + "}"},
     )
 
-    st.pydeck_chart(r)
-    st.caption(f"Showing **{feature}** for year **{year}**")
+    left, right = st.columns([4, 1])
+
+    with left:
+        st.pydeck_chart(r)
+
+    with right:
+        st.markdown(f"### Scale ({feature})")
+        st.metric("Min", f"{min_val:.2f}")
+        st.metric("Max", f"{max_val:.2f}")
+
 
 
 # Streamlit App
