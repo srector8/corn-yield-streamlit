@@ -38,21 +38,29 @@ def preprocess_data(file_path, shapefile_path):
 
     return merged_gdf, years
 
+from PIL import Image
 
-# Visualization Functions
+def make_colorbar():
+    # Horizontal gradient: Blue → Purple → Red
+    width, height = 256, 20
+    colorbar = Image.new("RGBA", (width, height))
+    for x in range(width):
+        r = int(255 * (x / (width - 1)))
+        g = 120
+        b = int(255 * (1 - x / (width - 1)))
+        for y in range(height):
+            colorbar.putpixel((x, y), (r, g, b, 255))
+    return colorbar
+
+
 def plot_choropleth(gdf, feature, year):
-    # Filter data for the selected year
+    # Filter for selected year
     gdf_year = gdf[gdf['year'] == year].copy()
 
-    # Compute feature stats for this feature + year only
+    # Feature-specific scaling (important)
     min_val = gdf_year[feature].min()
     max_val = gdf_year[feature].max()
-    median_val = gdf_year[feature].median()
-    mean_val = gdf_year[feature].mean()
-    std_val = gdf_year[feature].std()
 
-
-    # Normalize feature values to color scale
     gdf_year["__norm"] = (gdf_year[feature] - min_val) / (max_val - min_val + 1e-9)
     gdf_year["color"] = gdf_year["__norm"].apply(lambda x: [int(255 * x), 120, int(255 * (1 - x)), 180])
 
@@ -80,20 +88,24 @@ def plot_choropleth(gdf, feature, year):
         tooltip={"text": "{county_name}\n" + feature + ": {" + feature + "}"},
     )
 
+    # Layout: map left, scale right
     left, right = st.columns([4, 1])
 
     with left:
         st.pydeck_chart(r)
+        st.caption(f"Showing **{feature}** for **{year}**")
+
+        # --- Continuous Color Scale ---
+        st.write("### Color Scale")
+        st.image(make_colorbar(), use_column_width=True)
+        st.write(f"{min_val:.2f} ⟶ {max_val:.2f}")
 
     with right:
-        st.markdown(f"### Scale ({feature})")
-        st.metric("Min", f"{min_val:.2f}")
-        st.metric("Mean", f"{mean_val:.2f}")
-        st.metric("Median", f"{median_val:.2f}")
-        st.metric("Max", f"{max_val:.2f}")
-        st.metric("Standard Deviation", f"{std_val:.2f}")
-
-
+        st.write("### Values")
+        st.metric("Minimum", f"{min_val:.2f}")
+        st.metric("Maximum", f"{max_val:.2f}")
+        st.metric("Median", f"{gdf_year[feature].median():.2f}")
+        st.metric("Std Dev", f"{gdf_year[feature].std():.2f}")
 
 
 
