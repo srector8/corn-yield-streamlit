@@ -104,8 +104,10 @@ def plot_choropleth(gdf, feature, year):
         st.write("### Values")
         st.metric("Minimum", f"{min_val:.2f}")
         st.metric("Maximum", f"{max_val:.2f}")
+        st.metric("Mean", f"{gdf_year[feature].mean():.2f}")
         st.metric("Median", f"{gdf_year[feature].median():.2f}")
         st.metric("Std Dev", f"{gdf_year[feature].std():.2f}")
+
 
 
 # Streamlit App
