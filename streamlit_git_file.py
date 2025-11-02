@@ -64,6 +64,8 @@ def plot_choropleth(gdf, feature, year):
     gdf_year["__norm"] = (gdf_year[feature] - min_val) / (max_val - min_val + 1e-9)
     gdf_year["color"] = gdf_year["__norm"].apply(lambda x: [int(255 * x), 120, int(255 * (1 - x)), 180])
 
+    gdf_year["value_disp"] = gdf_year[feature].round(2)
+    
     layer = pdk.Layer(
         "GeoJsonLayer",
         gdf_year,
@@ -82,14 +84,15 @@ def plot_choropleth(gdf, feature, year):
         pitch=0,
     )
 
-    r = pdk.Deck(
-        layers=[layer],
-        initial_view_state=view_state,
-        tooltip={
-            "html": "<b>{county_name}</b><br>" + feature + ": {"+feature+":.2f}",
-            "style": {"backgroundColor": "white", "color": "black"}}
+   r = pdk.Deck(
+    layers=[layer],
+    initial_view_state=view_state,
+    tooltip={
+        "html": "<b>{county_name}</b><br>" + feature + ": {value_disp}",
+        "style": {"backgroundColor": "white", "color": "black"}
+    },
+)
 
-    )
 
     # Layout: map left, scale right
     left, right = st.columns([4, 1])
