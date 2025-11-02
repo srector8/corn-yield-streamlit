@@ -52,6 +52,22 @@ def make_colorbar():
             colorbar.putpixel((x, y), (r, g, b, 255))
     return colorbar
 
+def kde_1d(data, num_points=200, bandwidth=None):
+    data = np.asarray(data)
+    data = data[~np.isnan(data)]
+
+    # Silverman's rule of thumb if no bandwidth provided
+    if bandwidth is None:
+        bandwidth = 1.06 * data.std() * len(data) ** (-1/5)
+
+    xs = np.linspace(data.min(), data.max(), num_points)
+    density = np.zeros_like(xs)
+
+    for x in data:
+        density += np.exp(-0.5 * ((xs - x) / bandwidth) ** 2)
+
+    density /= (len(data) * bandwidth * np.sqrt(2 * np.pi))
+    return xs, density
 
 def plot_choropleth(gdf, feature, year):
     # Filter for selected year
@@ -111,6 +127,15 @@ def plot_choropleth(gdf, feature, year):
         st.metric("Mean", f"{gdf_year[feature].mean():.4f}")
         st.metric("Median", f"{gdf_year[feature].median():.4f}")
         st.metric("Std Dev", f"{gdf_year[feature].std():.4f}")
+
+    st.write(f"### Distribution of {feature} in {year}")
+    
+    vals = gdf_year[feature].dropna()
+    xs, density = kde_1d(vals)
+    
+    density_df = pd.DataFrame({"value": xs, "density": density})
+    st.line_chart(density_df, x="value", y="density")
+
 
 
 
