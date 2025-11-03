@@ -145,7 +145,7 @@ def plot_choropleth(gdf, feature, year):
 # Streamlit App
 def main():
     st.set_page_config(layout="wide")
-    st.title("🌽 US Corn Belt Yield Dashboard")
+    st.title("US Corn Belt Yield Dashboard")
 
     # File Inputs
     file_path = "all_feature_data_avg.csv"
@@ -165,7 +165,7 @@ def main():
         feature = st.sidebar.selectbox("Select Feature", cols_to_use, index=0)
 
         # Plot
-        st.header(f"{feature.title()} Map — {year}")
+        st.header(f"{feature.title()} Map - {year}")
         plot_choropleth(merged_gdf, feature, year)
     else:
         st.info("Please upload both the CSV data and shapefile to continue.")
