@@ -9,9 +9,6 @@ import geopandas as gpd
 import streamlit as st
 import pydeck as pdk
 import numpy as np
-import folium
-from folium.plugins import HeatMap
-from streamlit_folium import st_folium
 from PIL import Image
 
 
@@ -230,9 +227,9 @@ def create_uncertainty_visualization(gdf_year, selected_county, feature):
                 'count': hist_values
             })
             
-            # Add vertical line for selected county value
-            st.area_chart(hist_df.set_index('bin_center'))
-            st.caption(f"Red vertical line shows {selected_county}'s value: {county_value:.4f}")
+            # Add vertical line for selected county value using annotation
+            chart = st.area_chart(hist_df.set_index('bin_center'))
+            st.caption(f"🔴 Vertical line shows {selected_county}'s value: {county_value:.4f}")
         
         # Interactive uncertainty explanation
         st.write("### Uncertainty Interpretation")
@@ -248,51 +245,68 @@ def create_uncertainty_visualization(gdf_year, selected_county, feature):
     else:
         st.warning(f"Insufficient data around {selected_county} to calculate meaningful uncertainty.")
 
-def create_interactive_uncertainty_map(gdf_year, selected_county, feature):
-    """Create an interactive map showing uncertainty around the selected county"""
+def create_interactive_uncertainty_context(gdf_year, selected_county, feature):
+    """Create an interactive uncertainty context visualization using pydeck"""
     
     county_data = gdf_year[gdf_year['NAME_2'] == selected_county].iloc[0]
     county_geom = county_data.geometry
     
-    # Calculate distances and uncertainties
+    # Calculate distances and create uncertainty weights
     gdf_year['distance'] = gdf_year.geometry.distance(county_geom)
-    gdf_year['uncertainty_weight'] = 1 / (gdf_year['distance'] + 0.1)  # Avoid division by zero
     
-    # Create a folium map centered on the selected county
+    # Create a focused view around the selected county
+    focused_gdf = gdf_year[gdf_year['distance'] < 3.0].copy()
+    
+    # Color coding: selected county in red, others in gradient based on distance
+    def get_county_color(row, selected_county):
+        if row['NAME_2'] == selected_county:
+            return [255, 0, 0, 200]  # Red for selected county
+        else:
+            # Blue gradient based on distance (closer = darker/more opaque)
+            opacity = int(150 * (1 - min(row['distance']/3.0, 1)))
+            return [0, 0, 255, opacity]
+    
+    focused_gdf['color'] = focused_gdf.apply(
+        lambda row: get_county_color(row, selected_county), axis=1
+    )
+    
+    # Create uncertainty context layer
+    context_layer = pdk.Layer(
+        "GeoJsonLayer",
+        focused_gdf,
+        opacity=0.8,
+        stroked=True,
+        filled=True,
+        get_fill_color="color",
+        get_line_color=[0, 0, 0, 100],
+        get_line_width=1,
+        pickable=True,
+        tooltip={
+            "html": """
+            <b>{NAME_2}</b><br>
+            """ + feature + """: {""" + feature + """:.4f}<br>
+            Distance: {distance:.2f}°
+            """,
+            "style": {"backgroundColor": "white", "color": "black"}
+        }
+    )
+    
+    # Center on selected county with appropriate zoom
     county_center = county_geom.centroid
-    m = folium.Map(location=[county_center.y, county_center.x], zoom_start=8)
+    view_state = pdk.ViewState(
+        latitude=county_center.y,
+        longitude=county_center.x,
+        zoom=6,
+        pitch=0,
+    )
     
-    # Add the selected county with highlight
-    folium.GeoJson(
-        county_geom.__geo_interface__,
-        style_function=lambda x: {
-            'fillColor': 'red',
-            'color': 'red',
-            'weight': 3,
-            'fillOpacity': 0.3
-        },
-        tooltip=f"Selected: {selected_county}"
-    ).add_to(m)
+    context_deck = pdk.Deck(
+        layers=[context_layer],
+        initial_view_state=view_state,
+        tooltip=True
+    )
     
-    # Add neighboring counties with uncertainty encoding
-    for idx, row in gdf_year.iterrows():
-        if row['NAME_2'] != selected_county and row['distance'] < 2.0:
-            # Encode uncertainty using color intensity
-            uncertainty_level = min(row['uncertainty_weight'] * 10, 1.0)
-            fill_color = f'rgba(0, 0, 255, {uncertainty_level})'
-            
-            folium.GeoJson(
-                row.geometry.__geo_interface__,
-                style_function=lambda x, color=fill_color: {
-                    'fillColor': color,
-                    'color': 'blue',
-                    'weight': 1,
-                    'fillOpacity': 0.5
-                },
-                tooltip=f"{row['NAME_2']}: {row[feature]:.2f}"
-            ).add_to(m)
-    
-    return m
+    return context_deck
 
 # Streamlit App
 def main():
@@ -337,20 +351,21 @@ def main():
         
         if selected_county:
             # Create tabs for different uncertainty visualizations
-            tab1, tab2 = st.tabs(["Uncertainty Metrics & Map", "Interactive Uncertainty Context"])
+            tab1, tab2 = st.tabs(["Uncertainty Metrics & Map", "Spatial Context View"])
             
             with tab1:
                 create_uncertainty_visualization(gdf_year, selected_county, feature)
             
             with tab2:
                 st.subheader(f"Spatial Uncertainty Context for {selected_county}")
-                uncertainty_map = create_interactive_uncertainty_map(gdf_year, selected_county, feature)
-                st_folium(uncertainty_map, width=800, height=500)
+                context_deck = create_interactive_uncertainty_context(gdf_year, selected_county, feature)
+                st.pydeck_chart(context_deck)
                 
                 st.caption("""
                 **Map Interpretation:**
                 - 🔴 Red: Selected county
                 - 🔵 Blue: Surrounding counties (darker = closer/more relevant for uncertainty)
+                - Hover over counties to see exact values and distances
                 - The spatial distribution helps understand how geographic context affects uncertainty
                 """)
         
