@@ -4,5 +4,3 @@ pandas
 pydeck
 shapely
 numpy
-matplotlib.pyplot
-
