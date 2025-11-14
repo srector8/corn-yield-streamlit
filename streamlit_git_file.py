@@ -159,33 +159,31 @@ def main():
 
     merged_avg, merged_cv, years = preprocess_data(file_path_avg, file_path_cv, shapefile_path)
 
+    # Sidebar Controls
+    st.sidebar.header("Controls")
+    dataset_choice = st.sidebar.selectbox(
+        "Dataset Type",
+         ["Mean", "Coefficient of Variation"]
+    )
 
-    if file_path and shapefile_path:
-        # Sidebar Controls
-        st.sidebar.header("Controls")
-        dataset_choice = st.sidebar.selectbox(
-            "Dataset Type",
-            ["Mean", "Coefficient of Variation"]
-        )
+     if dataset_choice == "Mean":
+         active_gdf = merged_avg
+     else:
+         active_gdf = merged_cv
     
-        if dataset_choice == "Mean":
-            active_gdf = merged_avg
-        else:
-            active_gdf = merged_cv
+     year = st.sidebar.slider("Select Year",
+                             min_value=min(years),
+                             max_value=max(years),
+                             value=max(years))
     
-        year = st.sidebar.slider("Select Year",
-                                 min_value=min(years),
-                                 max_value=max(years),
-                                 value=max(years))
+    cols_to_use = [
+        'yield', 'tmmx', 'rmax', 'vs', 'sph', 'srad',
+         'vpd', 'rmin', 'pr', 'tmmn', 'th'
+       ]
+     feature = st.sidebar.selectbox("Select Feature", cols_to_use, index=0)
     
-        cols_to_use = [
-            'yield', 'tmmx', 'rmax', 'vs', 'sph', 'srad',
-            'vpd', 'rmin', 'pr', 'tmmn', 'th'
-        ]
-        feature = st.sidebar.selectbox("Select Feature", cols_to_use, index=0)
-    
-        st.header(f"{dataset_choice}: {feature.title()} Map - {year}")
-        plot_choropleth(active_gdf, feature, year)
+     st.header(f"{dataset_choice}: {feature.title()} Map - {year}")
+     plot_choropleth(active_gdf, feature, year)
 
 
 # Run App
