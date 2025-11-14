@@ -151,8 +151,7 @@ def plot_choropleth(gdf, feature, year):
 def main():
     st.set_page_config(layout="wide")
     st.title("US Corn Belt Yield Dashboard")
-
-    # File Inputs
+    
     file_path_avg = "all_feature_data_avg.csv"
     file_path_cv = "all_feature_data_coeff_of_variation.csv"
     shapefile_path = "CornBeltCounty.shp"
@@ -163,27 +162,30 @@ def main():
     st.sidebar.header("Controls")
     dataset_choice = st.sidebar.selectbox(
         "Dataset Type",
-         ["Mean", "Coefficient of Variation"]
+        ["Mean", "Coefficient of Variation"]
     )
 
-     if dataset_choice == "Mean":
-         active_gdf = merged_avg
-     else:
-         active_gdf = merged_cv
-    
-     year = st.sidebar.slider("Select Year",
+    if dataset_choice == "Mean":
+        active_gdf = merged_avg
+    else:
+        active_gdf = merged_cv
+
+    year = st.sidebar.slider("Select Year",
                              min_value=min(years),
                              max_value=max(years),
                              value=max(years))
-    
+
     cols_to_use = [
         'yield', 'tmmx', 'rmax', 'vs', 'sph', 'srad',
-         'vpd', 'rmin', 'pr', 'tmmn', 'th'
-       ]
-     feature = st.sidebar.selectbox("Select Feature", cols_to_use, index=0)
-    
-     st.header(f"{dataset_choice}: {feature.title()} Map - {year}")
-     plot_choropleth(active_gdf, feature, year)
+        'vpd', 'rmin', 'pr', 'tmmn', 'th'
+    ]
+    feature = st.sidebar.selectbox("Select Feature", cols_to_use, index=0)
+
+    st.header(f"{dataset_choice}: {feature.title()} Map - {year}")
+    plot_choropleth(active_gdf, feature, year)
+
+
+
 
 
 # Run App
