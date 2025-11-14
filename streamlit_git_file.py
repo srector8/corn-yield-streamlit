@@ -22,21 +22,26 @@ import numpy as np
 
 # Preprocessing
 @st.cache_data
-def preprocess_data(file_path, shapefile_path):
-    # Load and merge CSV with shapefile, simplify geometry
-    avg_df = pd.read_csv(file_path)
+@st.cache_data
+def preprocess_data(file_path_avg, file_path_cv, shapefile_path):
+    # Load both CSVs
+    avg_df = pd.read_csv(file_path_avg)
+    cv_df = pd.read_csv(file_path_cv)
+
     shp_gdf = gpd.read_file(shapefile_path)
 
-    # Merge on county IDs
-    merged_gdf = shp_gdf.merge(avg_df, left_on='ID_2', right_on='id2')
+    # Merge both CSVs with shapefile
+    merged_avg = shp_gdf.merge(avg_df, left_on='ID_2', right_on='id2')
+    merged_cv = shp_gdf.merge(cv_df, left_on='ID_2', right_on='id2')
 
-    # Simplify geometries for faster plotting
-    merged_gdf['geometry'] = merged_gdf['geometry'].simplify(0.01)
+    # Simplify geometry
+    merged_avg['geometry'] = merged_avg['geometry'].simplify(0.01)
+    merged_cv['geometry'] = merged_cv['geometry'].simplify(0.01)
 
-    # Extract the list of years in the dataset
     years = sorted(avg_df['year'].unique())
 
-    return merged_gdf, years
+    return merged_avg, merged_cv, years
+
 
 from PIL import Image
 
@@ -148,27 +153,39 @@ def main():
     st.title("US Corn Belt Yield Dashboard")
 
     # File Inputs
-    file_path = "all_feature_data_avg.csv"
+    file_path_avg = "all_feature_data_avg.csv"
+    file_path_cv = "all_feature_data_coeff_of_variation.csv"
     shapefile_path = "CornBeltCounty.shp"
 
-    if file_path and shapefile_path:
-        merged_gdf, years = preprocess_data(file_path, shapefile_path)
+    merged_avg, merged_cv, years = preprocess_data(file_path_avg, file_path_cv, shapefile_path)
 
+
+    if file_path and shapefile_path:
         # Sidebar Controls
         st.sidebar.header("Controls")
-        year = st.sidebar.slider("Select Year", min_value=min(years), max_value=max(years), value=max(years))
-
+        dataset_choice = st.sidebar.selectbox(
+            "Dataset Type",
+            ["Mean", "Coefficient of Variation"]
+        )
+    
+        if dataset_choice == "Mean":
+            active_gdf = merged_avg
+        else:
+            active_gdf = merged_cv
+    
+        year = st.sidebar.slider("Select Year",
+                                 min_value=min(years),
+                                 max_value=max(years),
+                                 value=max(years))
+    
         cols_to_use = [
             'yield', 'tmmx', 'rmax', 'vs', 'sph', 'srad',
             'vpd', 'rmin', 'pr', 'tmmn', 'th'
         ]
         feature = st.sidebar.selectbox("Select Feature", cols_to_use, index=0)
-
-        # Plot
-        st.header(f"{feature.title()} Map - {year}")
-        plot_choropleth(merged_gdf, feature, year)
-    else:
-        st.info("Please upload both the CSV data and shapefile to continue.")
+    
+        st.header(f"{dataset_choice}: {feature.title()} Map - {year}")
+        plot_choropleth(active_gdf, feature, year)
 
 
 # Run App
