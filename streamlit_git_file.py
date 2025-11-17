@@ -230,7 +230,8 @@ def main():
                 predictions.append(temp)
     
                 # Metrics
-                rmse = mean_squared_error(y_test, y_pred, squared=False)
+                mse = mean_squared_error(y_test, y_pred)
+                rmse = np.sqrt(mse)
                 mae = mean_absolute_error(y_test, y_pred)
                 metrics.append({"year": yr, "rmse": rmse, "mae": mae})
     
