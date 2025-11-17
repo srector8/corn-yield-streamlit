@@ -131,7 +131,6 @@ def plot_choropleth(gdf, feature, year):
         st.metric("Maximum", f"{max_val:.4f}")
         st.metric("Mean", f"{gdf_year[feature].mean():.4f}")
         st.metric("Median", f"{gdf_year[feature].median():.4f}")
-        st.metric("Std Dev", f"{gdf_year[feature].std():.4f}")
 
     st.write(f"### Distribution of {feature} in {year}")
     
