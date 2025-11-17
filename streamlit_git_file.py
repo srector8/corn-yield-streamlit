@@ -156,22 +156,21 @@ def main():
     st.set_page_config(layout="wide")
     st.title("US Corn Belt Yield Dashboard")
 
-    # Loading data
     file_path_avg = "all_feature_data_avg.csv"
     file_path_cv = "all_feature_data_coeff_of_variation.csv"
     shapefile_path = "CornBeltCounty.shp"
 
+    # Load data
     merged_avg, merged_cv, years = preprocess_data(file_path_avg, file_path_cv, shapefile_path)
 
-    # Sidebar: choose app section
+    # Sidebar: select active tab
     active_tab = st.sidebar.radio("Select App Section", ["Exploration", "Model Builder"])
-    
+
     # ------------------------------
     # Exploration Sidebar Controls
     # ------------------------------
     if active_tab == "Exploration":
         st.sidebar.header("Exploration Controls")
-        
         dataset_choice = st.sidebar.selectbox(
             "Dataset Type",
             ["Mean", "Coefficient of Variation"]
@@ -196,6 +195,33 @@ def main():
         feature = st.sidebar.selectbox("Select Feature", cols_to_use, index=0)
 
     # ------------------------------
+    # Model Builder Sidebar Controls
+    # ------------------------------
+    if active_tab == "Model Builder":
+        st.sidebar.header("Model Builder Controls")
+
+        # Predictor features (exclude 'yield')
+        predictor_features = [
+            'tmmx', 'rmax', 'vs', 'sph', 'srad',
+            'vpd', 'rmin', 'pr', 'tmmn', 'th'
+        ]
+        model_features = st.sidebar.multiselect(
+            "Select Features for Regression:",
+            predictor_features,
+            default=['tmmx', 'rmax', 'pr']
+        )
+
+        pred_year = st.sidebar.selectbox(
+            "Select Year to Visualize Predictions:",
+            years,
+            index=len(years)-1
+        )
+
+        if len(model_features) == 0:
+            st.sidebar.warning("Please select at least one feature.")
+            st.stop()
+
+    # ------------------------------
     # Tabs
     # ------------------------------
     tab1, tab2 = st.tabs(["Exploration", "Model Builder"])
@@ -214,37 +240,20 @@ def main():
     # Tab 2: Model Builder
     # ------------------------------
     with tab2:
-        st.header("Build Your Own Yield Prediction Model")
-        st.write("This model uses Leave-One-Year-Out cross-validation (LOYO).")
+        st.header("Yield Prediction Model (LOYO Ridge)")
+        st.write("Predictions are made using leave-one-year-out cross-validation.")
 
-        # Predictor features (exclude 'yield')
-        predictor_features = [
-            'tmmx', 'rmax', 'vs', 'sph', 'srad',
-            'vpd', 'rmin', 'pr', 'tmmn', 'th'
-        ]
+        # Prepare data
+        df = merged_avg.drop(columns="geometry").copy()
 
-        model_features = st.multiselect(
-            "Choose features for the regression model:",
-            predictor_features,
-            default=['tmmx', 'rmax', 'pr']
-        )
-
-        if len(model_features) == 0:
-            st.warning("Please select at least one feature.")
-            st.stop()
-
-        # ------------------------------
         # LOYO Regression
-        # ------------------------------
         from sklearn.linear_model import Ridge
         from sklearn.metrics import mean_squared_error, mean_absolute_error
         import numpy as np
 
-        df = merged_avg.copy()  # always use mean dataset for yield modeling
-        df = df.drop(columns="geometry")  # Drop geometry for modeling
-
         predictions = []
         metrics = []
+
         years_unique = sorted(df["year"].unique())
 
         for yr in years_unique:
@@ -277,15 +286,7 @@ def main():
         st.subheader("Model Performance (LOYO)")
         st.dataframe(metrics_df)
 
-        # ------------------------------
-        # Select Year for Predicted Yield Map
-        # ------------------------------
-        pred_year = st.selectbox(
-            "Choose a year to visualize predictions:",
-            years_unique,
-            index=len(years_unique) - 1
-        )
-
+        # Filter predictions for user-selected year
         plot_gdf = merged_avg.merge(
             predictions_df[predictions_df["year"] == pred_year],
             on=["id2", "year"],
@@ -294,6 +295,7 @@ def main():
 
         st.subheader(f"Predicted Yield Map – {pred_year}")
         plot_choropleth(plot_gdf, "predicted_yield", pred_year)
+
 
 # Run App
 if __name__ == "__main__":
