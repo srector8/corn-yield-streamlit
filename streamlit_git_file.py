@@ -166,9 +166,7 @@ def main():
     # Sidebar: select active tab
     active_tab = st.sidebar.radio("Select App Section", ["Exploration", "Model Builder"])
 
-    # ------------------------------
     # Exploration Sidebar Controls
-    # ------------------------------
     if active_tab == "Exploration":
         st.sidebar.header("Exploration Controls")
         dataset_choice = st.sidebar.selectbox(
@@ -194,9 +192,7 @@ def main():
         ]
         feature = st.sidebar.selectbox("Select Feature", cols_to_use, index=0)
 
-    # ------------------------------
     # Model Builder Sidebar Controls
-    # ------------------------------
     if active_tab == "Model Builder":
         st.sidebar.header("Model Builder Controls")
 
@@ -221,14 +217,10 @@ def main():
             st.sidebar.warning("Please select at least one feature.")
             st.stop()
 
-    # ------------------------------
     # Tabs
-    # ------------------------------
     tab1, tab2 = st.tabs(["Exploration", "Model Builder"])
 
-    # ------------------------------
     # Tab 1: Exploration
-    # ------------------------------
     with tab1:
         if active_tab == "Exploration":
             st.header(f"{dataset_choice}: {feature.title()} Map - {year}")
@@ -236,9 +228,7 @@ def main():
         else:
             st.info("Switch to Exploration tab to see observed data.")
 
-    # ------------------------------
     # Tab 2: Model Builder
-    # ------------------------------
     with tab2:
         st.header("Yield Prediction Model (LOYO Ridge)")
         st.write("Predictions are made using leave-one-year-out cross-validation.")
