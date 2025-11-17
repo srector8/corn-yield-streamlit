@@ -8,9 +8,7 @@ Original file is located at
 """
 
 # -*- coding: utf-8 -*-
-"""Corn Yield Dashboard
-
-Streamlit app to explore US Corn Belt yield data over time.
+"""Streamlit app to explore US Corn Belt yield data over time.
 """
 
 # Libraries
