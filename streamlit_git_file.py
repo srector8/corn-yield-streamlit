@@ -228,6 +228,10 @@ def main():
 
     # Tab 2: Model Builder
     with tab2:
+        if active_tab != "Model Builder":
+            st.info("Switch to Model Builder tab to run the model.")
+            st.stop()
+        
         st.header("Yield Prediction Model (LOYO Ridge)")
         st.write("Predictions are made using leave-one-year-out cross-validation.")
 
