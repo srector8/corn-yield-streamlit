@@ -4,3 +4,4 @@ pandas
 pydeck
 shapely
 numpy
+sklearn
