@@ -180,12 +180,81 @@ def main():
     ]
     feature = st.sidebar.selectbox("Select Feature", cols_to_use, index=0)
 
-    st.header(f"{dataset_choice}: {feature.title()} Map - {year}")
-    plot_choropleth(active_gdf, feature, year)
+    tab1, tab2 = st.tabs(["Exploration", "Model Builder"])
 
+    with tab1:
+        st.header(f"{dataset_choice}: {feature.title()} Map - {year}")
+        plot_choropleth(active_gdf, feature, year)
+    
+    with tab2:
+        st.header("Build Your Own Yield Prediction Model")
+        
+        model_features = st.multiselect(
+            "Choose features for the regression model:",
+            cols_to_use,
+            default=['tmmx', 'rmax', 'pr']
+        )
+    
+        if len(model_features) == 0:
+            st.warning("Please select at least one feature.")
+        else:
+            from sklearn.linear_model import Ridge
+            from sklearn.metrics import mean_squared_error, mean_absolute_error
+    
+            df = active_gdf.copy()
+            df = df.drop(columns="geometry")   # modeling requires no geometry
+    
+            predictions = []
+            metrics = []
+    
+            years_unique = sorted(df["year"].unique())
+    
+            for yr in years_unique:
+                train = df[df["year"] != yr]
+                test = df[df["year"] == yr]
+    
+                X_train = train[model_features].values
+                y_train = train["yield"].values
+    
+                X_test = test[model_features].values
+                y_test = test["yield"].values
+    
+                model = Ridge(alpha=1.0)
+                model.fit(X_train, y_train)
+    
+                y_pred = model.predict(X_test)
+    
+                # Save predictions
+                temp = test[["id2", "year"]].copy()
+                temp["predicted_yield"] = y_pred
+                predictions.append(temp)
+    
+                # Metrics
+                rmse = mean_squared_error(y_test, y_pred, squared=False)
+                mae = mean_absolute_error(y_test, y_pred)
+                metrics.append({"year": yr, "rmse": rmse, "mae": mae})
+    
+            predictions_df = pd.concat(predictions)
+            metrics_df = pd.DataFrame(metrics)
+    
+            st.subheader("Model Performance (LOYO)")
+            st.dataframe(metrics_df)
 
+        pred_year = st.selectbox(
+            "Choose a year to visualize predictions:",
+            years_unique,
+            index=len(years_unique) - 1
+        )
 
+        # Merge predictions back into the shapefile to display a map
+        plot_gdf = merged_avg.merge(
+            predictions_df[predictions_df["year"] == pred_year],
+            on=["id2", "year"],
+            how="left"
+        )
 
+        st.subheader(f"Predicted Yield Map – {pred_year}")
+        plot_choropleth(plot_gdf, "predicted_yield", pred_year)
 
 # Run App
 if __name__ == "__main__":
