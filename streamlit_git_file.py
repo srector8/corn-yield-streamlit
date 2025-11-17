@@ -13,6 +13,7 @@ Original file is located at
 Streamlit app to explore US Corn Belt yield data over time.
 """
 
+# Libraries
 import pandas as pd
 import geopandas as gpd
 import streamlit as st
@@ -57,6 +58,7 @@ def make_colorbar():
             colorbar.putpixel((x, y), (r, g, b, 255))
     return colorbar
 
+# Computation of density function - for plot
 def kde_1d(data, num_points=200, bandwidth=None):
     data = np.asarray(data)
     data = data[~np.isnan(data)]
@@ -74,6 +76,7 @@ def kde_1d(data, num_points=200, bandwidth=None):
     density /= (len(data) * bandwidth * np.sqrt(2 * np.pi))
     return xs, density
 
+# Choropleth plotting function
 def plot_choropleth(gdf, feature, year):
     # Filter for selected year
     gdf_year = gdf[gdf['year'] == year].copy()
@@ -125,6 +128,7 @@ def plot_choropleth(gdf, feature, year):
         st.image(make_colorbar(), use_column_width=True)
         st.write(f"{min_val:.4f} ⟶ {max_val:.4f}")
 
+    # Display key statistics
     with right:
         st.write("### Values")
         st.metric("Minimum", f"{min_val:.4f}")
@@ -139,7 +143,8 @@ def plot_choropleth(gdf, feature, year):
     
     density_df = pd.DataFrame({"value": xs, "density": density})
     density_df = density_df.set_index("value") 
-    
+
+    # Display density plot
     st.area_chart(density_df)
 
 
@@ -150,7 +155,8 @@ def plot_choropleth(gdf, feature, year):
 def main():
     st.set_page_config(layout="wide")
     st.title("US Corn Belt Yield Dashboard")
-    
+
+    # Loading data
     file_path_avg = "all_feature_data_avg.csv"
     file_path_cv = "all_feature_data_coeff_of_variation.csv"
     shapefile_path = "CornBeltCounty.shp"
@@ -164,6 +170,7 @@ def main():
         ["Mean", "Coefficient of Variation"]
     )
 
+    # Using mean or CV df
     if dataset_choice == "Mean":
         active_gdf = merged_avg
     else:
@@ -182,16 +189,25 @@ def main():
 
     tab1, tab2 = st.tabs(["Exploration", "Model Builder"])
 
+    # Feature/yield choropleth tab
     with tab1:
         st.header(f"{dataset_choice}: {feature.title()} Map - {year}")
         plot_choropleth(active_gdf, feature, year)
-    
+
+    # Model builder tab
     with tab2:
         st.header("Build Your Own Yield Prediction Model")
-        
+
+        # Exclude yield
+        predictor_features = [
+            'tmmx', 'rmax', 'vs', 'sph', 'srad',
+            'vpd', 'rmin', 'pr', 'tmmn', 'th'
+        ]
+    
+        # Selection of predictors
         model_features = st.multiselect(
             "Choose features for the regression model:",
-            cols_to_use,
+            predictor_features,
             default=['tmmx', 'rmax', 'pr']
         )
     
@@ -202,13 +218,14 @@ def main():
             from sklearn.metrics import mean_squared_error, mean_absolute_error
     
             df = active_gdf.copy()
-            df = df.drop(columns="geometry")   # modeling requires no geometry
+            df = df.drop(columns="geometry")
     
             predictions = []
             metrics = []
     
             years_unique = sorted(df["year"].unique())
-    
+
+            # LOYO split - Ridge Regression Modeling
             for yr in years_unique:
                 train = df[df["year"] != yr]
                 test = df[df["year"] == yr]
