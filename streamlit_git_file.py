@@ -162,75 +162,79 @@ def main():
     merged_avg, merged_cv, years = preprocess_data(file_path_avg, file_path_cv, shapefile_path)
 
     # Sidebar: select active tab
-    active_tab = st.sidebar.radio("Select App Section", ["Exploration", "Model Builder"])
+    # active_tab = st.sidebar.radio("Select App Section", ["Exploration", "Model Builder"])
+    tab1, tab2 = st.tabs(["Exploration", "Model Builder"])
 
     # Exploration Sidebar Controls
-    if active_tab == "Exploration":
-        st.sidebar.header("Exploration Controls")
-        dataset_choice = st.sidebar.selectbox(
-            "Dataset Type",
-            ["Mean", "Coefficient of Variation"]
-        )
+    # Tabs
 
-        if dataset_choice == "Mean":
-            active_gdf = merged_avg
-        else:
-            active_gdf = merged_cv
+    # Tab 1: Exploration
+    with tab1:
+        st.header("Exploration Controls")
+        col1, col2 = st.columns([1,2])
+        with col1:
+            dataset_choice = st.selectbox(
+                "Dataset Type",
+                ["Mean", "Coefficient of Variation"]
+            )
 
-        year = st.sidebar.slider(
-            "Select Year",
-            min_value=min(years),
-            max_value=max(years),
-            value=max(years)
-        )
+            if dataset_choice == "Mean":
+                active_gdf = merged_avg
+            else:
+                active_gdf = merged_cv
 
-        cols_to_use = [
-            'yield', 'tmmx', 'rmax', 'vs', 'sph', 'srad',
-            'vpd', 'rmin', 'pr', 'tmmn', 'th'
-        ]
-        feature = st.sidebar.selectbox("Select Feature", cols_to_use, index=0)
+            year = st.slider(
+                "Select Year",
+                min_value=min(years),
+                max_value=max(years),
+                value=max(years)
+            )
 
-    # Model Builder Sidebar Controls
-    if active_tab == "Model Builder":
-        st.sidebar.header("Model Builder Controls")
+            cols_to_use = [
+                'yield', 'tmmx', 'rmax', 'vs', 'sph', 'srad',
+                'vpd', 'rmin', 'pr', 'tmmn', 'th'
+            ]
+            feature = st.selectbox("Select Feature", cols_to_use, index=0)
+        st.divider()
+
+        tab1.header(f"{dataset_choice}: {feature.title()} Map - {year}")
+            # st.header(f"{dataset_choice}: {feature.title()} Map - {year}")
+        plot_choropleth(active_gdf, feature, year)
+        # else:
+            # st.info("Switch to Exploration tab to see observed data.")
+
+    # Tab 2: Model Builder
+    with tab2:
+        st.header("Model Builder Controls")
 
         # Predictor features (exclude 'yield')
         predictor_features = [
             'tmmx', 'rmax', 'vs', 'sph', 'srad',
             'vpd', 'rmin', 'pr', 'tmmn', 'th'
         ]
-        model_features = st.sidebar.multiselect(
-            "Select Features for Regression:",
-            predictor_features,
-            default=['tmmx', 'rmax', 'pr']
-        )
 
-        pred_year = st.sidebar.selectbox(
-            "Select Year to Visualize Predictions:",
-            years,
-            index=len(years)-1
-        )
+        col1, col2 = st.columns([1,2])
+        with col1:
+            model_features = st.multiselect(
+                "Select Features for Regression:",
+                predictor_features,
+                default=['tmmx', 'rmax', 'pr']
+            )
+            pred_year = st.selectbox(
+                "Select Year to Visualize Predictions:",
+                years,
+                index=len(years)-1
+            )
+
+
+        st.divider()
 
         if len(model_features) == 0:
             st.sidebar.warning("Please select at least one feature.")
             st.stop()
-
-    # Tabs
-    tab1, tab2 = st.tabs(["Exploration", "Model Builder"])
-
-    # Tab 1: Exploration
-    with tab1:
-        if active_tab == "Exploration":
-            st.header(f"{dataset_choice}: {feature.title()} Map - {year}")
-            plot_choropleth(active_gdf, feature, year)
-        else:
-            st.info("Switch to Exploration tab to see observed data.")
-
-    # Tab 2: Model Builder
-    with tab2:
-        if active_tab != "Model Builder":
-            st.info("Switch to Model Builder tab to run the model.")
-            st.stop()
+        # if active_tab != "Model Builder":
+            # st.info("Switch to Model Builder tab to run the model.")
+            # st.stop()
         
         st.header("Yield Prediction Model (LOYO Ridge)")
         st.write("Predictions are made using leave-one-year-out cross-validation.")
