@@ -154,6 +154,9 @@ def main():
     st.set_page_config(layout="wide")
     st.title("US Corn Belt Yield Dashboard")
 
+    st.text("Welcome to the dashboard!")
+    st.text("Select 'Explore' to view the feature and yield values county by county or 'Model Builder' to build your own regression model!")
+
     file_path_avg = "all_feature_data_avg.csv"
     file_path_cv = "all_feature_data_coeff_of_variation.csv"
     shapefile_path = "CornBeltCounty.shp"
