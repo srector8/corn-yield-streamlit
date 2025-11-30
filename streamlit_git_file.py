@@ -250,7 +250,29 @@ def main():
                 predictor_features,
                 default=['tmmx', 'rmax', 'pr']
             )
-        
+
+            # Hyperparameters
+            alpha = st.number_input(
+                "Alpha (regularization strength)",
+                min_value=0.0,
+                value=1.0,     # default
+                step=0.1,
+                format="%.4f"
+            )
+
+            # Only show l1_ratio slider if Elastic Net is selected
+            if model_choice == "Elastic Net":
+                l1_ratio = st.number_input(
+                    "L1 Ratio (Elastic Net only)",
+                    min_value=0.0,
+                    max_value=1.0,
+                    value=0.5,      # default
+                    step=0.05,
+                    format="%.2f"
+                )
+            else:
+                l1_ratio = None
+
             model_choice = st.selectbox(
                 "Select Model Type:",
                 ["Ridge", "Lasso", "Elastic Net"]
@@ -300,13 +322,13 @@ def main():
 
             # Select model based on user choice
             if model_choice == "Ridge":
-                model = Ridge(alpha=1.0)
+                model = Ridge(alpha=alpha)
             
             elif model_choice == "Lasso":
-                model = Lasso(alpha=0.05)
+                model = Lasso(alpha=alpha)
             
             elif model_choice == "Elastic Net":
-                model = ElasticNet(alpha=0.05, l1_ratio=0.5)
+                model = ElasticNet(alpha=alpha, l1_ratio=l1_ratio)
             
             # Train + predict
             model.fit(X_train, y_train)
