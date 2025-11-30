@@ -166,7 +166,7 @@ def main():
 
     # Sidebar: select active tab
     # active_tab = st.sidebar.radio("Select App Section", ["Exploration", "Model Builder"])
-    tab1, tab2 = st.tabs(["Exploration", "Model Builder"])
+    tab1, tab2, tab3 = st.tabs(["Exploration", "Model Builder", "Data Dictionary"])
 
     # Exploration Sidebar Controls
     # Tabs
@@ -294,6 +294,46 @@ def main():
 
         st.subheader(f"Predicted Yield Map – {pred_year}")
         plot_choropleth(plot_gdf, "predicted_yield", pred_year)
+    # Tab 3: Data Dictionary
+    with tab3:
+        st.header("Data Dictionary")
+    
+        st.markdown("""
+        ### Climate & Environmental Variables
+    
+        **sph — Near-Surface Specific Humidity (g/kg)**  
+        Amount of water vapor contained in the air.
+    
+        **vpd — Mean Vapor Pressure Deficit (kPa)**  
+        Measures the "drying power" of air — higher VPD = more evaporative demand.
+    
+        **pr — Precipitation (kg/m²)**  
+        Total precipitation amount.
+    
+        **rmin — Minimum Near-Surface Relative Humidity (%)**  
+        The minimum daily percent of water vapor in the air relative to how much could be held at that temperature.
+    
+        **rmax — Maximum Near-Surface Relative Humidity (%)**  
+        The maximum daily percent of water vapor in the air relative to capacity.
+    
+        **srad — Surface Downwelling Solar Radiation (W/m²)**  
+        How much sunlight reaches the ground.
+    
+        **tmmn — Minimum Near-Surface Air Temperature (°C)**  
+        Daily minimum temperature.
+    
+        **tmmx — Maximum Near-Surface Air Temperature (°C)**  
+        Daily maximum temperature.
+    
+        **vs — Wind Speed at 10 m (m/s)**  
+        Average wind speed measured 10 meters above ground.
+    
+        **th — Wind Direction at 10 m (degrees)**  
+        Direction from which the wind blows.
+        """)
+    
+        st.info("These definitions follow standard climatology and meteorology conventions commonly used in agricultural modeling.")
+
 
 
 # Run App
