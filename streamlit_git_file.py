@@ -321,14 +321,24 @@ def main():
             y_test = test["yield"].values
 
             # Select model based on user choice
+            from sklearn.preprocessing import StandardScaler
+            from sklearn.pipeline import Pipeline
+            
             if model_choice == "Ridge":
-                model = Ridge(alpha=alpha)
-            
+                model = Pipeline([
+                    ("scaler", StandardScaler()),
+                    ("reg", Ridge(alpha=alpha))
+                ])
             elif model_choice == "Lasso":
-                model = Lasso(alpha=alpha)
-            
+                model = Pipeline([
+                    ("scaler", StandardScaler()),
+                    ("reg", Lasso(alpha=alpha))
+                ])
             elif model_choice == "Elastic Net":
-                model = ElasticNet(alpha=alpha, l1_ratio=l1_ratio)
+                model = Pipeline([
+                    ("scaler", StandardScaler()),
+                    ("reg", ElasticNet(alpha=alpha, l1_ratio=l1_ratio))
+                ])
             
             # Train + predict
             model.fit(X_train, y_train)
