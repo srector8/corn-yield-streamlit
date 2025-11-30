@@ -74,6 +74,21 @@ def kde_1d(data, num_points=200, bandwidth=None):
     density /= (len(data) * bandwidth * np.sqrt(2 * np.pi))
     return xs, density
 
+FEATURE_UNITS = {
+    "yield": "bu/acre",
+    "tmmx": "°C", 
+    "tmmn": "°C",
+    "rmax": "%", 
+    "rmin": "%", 
+    "sph": "g/kg",
+    "vpd": "kPa",
+    "pr": "kg/m²",
+    "srad": "W/m²",
+    "vs": "m/s",
+    "th": "°"
+}
+
+
 # Choropleth plotting function
 def plot_choropleth(gdf, feature, year):
     # Filter for selected year
@@ -123,8 +138,22 @@ def plot_choropleth(gdf, feature, year):
         st.caption(f"Showing **{feature}** for **{year}**")
 
         st.write("### Color Scale")
+
+        # Show horizontal gradient
         st.image(make_colorbar(), use_column_width=True)
-        st.write(f"{min_val:.4f} ⟶ {max_val:.4f}")
+        
+        # Get units (default: "")
+        unit = FEATURE_UNITS.get(feature, "")
+        
+        # Build formatted labels
+        min_label = f"{min_val:.4f} {unit}"
+        max_label = f"{max_val:.4f} {unit}"
+        
+        # Show left/right labels under the colorbar
+        cols = st.columns([1, 1])
+        cols[0].markdown(f"**{min_label}**")
+        cols[1].markdown(f"<div style='text-align:right'><b>{max_label}</b></div>", unsafe_allow_html=True)
+
 
     # Display key statistics
     with right:
