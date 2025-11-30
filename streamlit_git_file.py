@@ -250,12 +250,17 @@ def main():
                 predictor_features,
                 default=['tmmx', 'rmax', 'pr']
             )
+        
+            model_choice = st.selectbox(
+                "Select Model Type:",
+                ["Ridge", "Lasso", "Elastic Net"]
+            )
+        
             pred_year = st.selectbox(
                 "Select Year to Visualize Predictions:",
                 years,
                 index=len(years)-1
             )
-
 
         st.divider()
 
@@ -276,7 +281,9 @@ def main():
         from sklearn.linear_model import Ridge
         from sklearn.metrics import mean_squared_error, mean_absolute_error
         import numpy as np
-
+        from sklearn.linear_model import Ridge, Lasso, ElasticNet
+        from sklearn.metrics import mean_squared_error, mean_absolute_error
+        
         predictions = []
         metrics = []
 
@@ -291,9 +298,20 @@ def main():
             X_test = test[model_features].values
             y_test = test["yield"].values
 
-            model = Ridge(alpha=1.0)
+            # Select model based on user choice
+            if model_choice == "Ridge":
+                model = Ridge(alpha=1.0)
+            
+            elif model_choice == "Lasso":
+                model = Lasso(alpha=0.05)
+            
+            elif model_choice == "Elastic Net":
+                model = ElasticNet(alpha=0.05, l1_ratio=0.5)
+            
+            # Train + predict
             model.fit(X_train, y_train)
             y_pred = model.predict(X_test)
+
 
             # Store predictions
             temp = test[["id2", "year"]].copy()
