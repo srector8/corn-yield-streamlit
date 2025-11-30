@@ -76,8 +76,8 @@ def kde_1d(data, num_points=200, bandwidth=None):
 
 FEATURE_UNITS = {
     "yield": "bu/acre",
-    "tmmx": "°C", 
-    "tmmn": "°C",
+    "tmmx": "K", 
+    "tmmn": "K",
     "rmax": "%", 
     "rmin": "%", 
     "sph": "g/kg",
