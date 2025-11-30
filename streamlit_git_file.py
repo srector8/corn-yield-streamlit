@@ -250,7 +250,12 @@ def main():
                 predictor_features,
                 default=['tmmx', 'rmax', 'pr']
             )
-
+            
+            model_choice = st.selectbox(
+                "Select Model Type:",
+                ["Ridge", "Lasso", "Elastic Net"]
+            )
+    
             # Hyperparameters
             alpha = st.number_input(
                 "Alpha (regularization strength)",
@@ -273,11 +278,6 @@ def main():
             else:
                 l1_ratio = None
 
-            model_choice = st.selectbox(
-                "Select Model Type:",
-                ["Ridge", "Lasso", "Elastic Net"]
-            )
-        
             pred_year = st.selectbox(
                 "Select Year to Visualize Predictions:",
                 years,
