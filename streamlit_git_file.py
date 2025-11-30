@@ -137,8 +137,6 @@ def plot_choropleth(gdf, feature, year):
         st.pydeck_chart(r)
         st.caption(f"Showing **{feature}** for **{year}**")
 
-        st.write("### Color Scale")
-
         # Show horizontal gradient
         st.image(make_colorbar(), use_column_width=True)
         
