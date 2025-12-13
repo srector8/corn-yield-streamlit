@@ -228,7 +228,7 @@ def main():
     st.title("US Corn Belt Yield Dashboard")
 
     st.text("Welcome to the dashboard!")
-    st.text("Select 'Explore' to view the feature and yield values county by county or 'Model Builder' to build your own regression model!")
+    st.text("Select 'Explore' to view the feature and yield values county by county, 'Climate Stress' to gauge how dryness and heat impact regions, or 'Model Builder' to build your own regression model!")
 
     file_path_avg = "all_feature_data_avg.csv"
     file_path_cv = "all_feature_data_coeff_of_variation.csv"
