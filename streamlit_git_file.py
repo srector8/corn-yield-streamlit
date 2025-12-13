@@ -284,7 +284,7 @@ def main():
         st.header("Climate Stress Controls")
         st.write(
             "Climate stress is a continuous index (higher = worse) that increases with **higher temperature** "
-            "and **lower precipitation**. Nonlinear exponents let extremes matter more."
+            "and **lower precipitation**. Exponents control severity, and weight controls importance."
         )
 
         col1, col2 = st.columns([1, 2])
