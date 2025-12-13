@@ -88,6 +88,52 @@ FEATURE_UNITS = {
     "th": "°"
 }
 
+def add_climate_stress_metric(
+    gdf,
+    year,
+    temp_col="tmmx",
+    pr_col="pr",
+    heat_power=2.0,
+    dry_power=2.0,
+    heat_weight=0.5,
+):
+    """
+    Creates a continuous climate stress index in [0,1] for a given year.
+    Higher = worse. Increases with higher temperature and lower precipitation.
+
+    stress_raw = heat_weight*(temp_norm**heat_power) + (1-heat_weight)*(dry_norm**dry_power)
+    where:
+      temp_norm in [0,1] is higher when temp is higher
+      dry_norm  in [0,1] is higher when precip is lower (i.e., dryness)
+    """
+    gdf_year = gdf[gdf["year"] == year].copy()
+
+    # Pull series
+    t = gdf_year[temp_col].astype(float)
+    p = gdf_year[pr_col].astype(float)
+
+    # Normalize temp: higher temp -> closer to 1
+    t_min, t_max = np.nanmin(t), np.nanmax(t)
+    temp_norm = (t - t_min) / (t_max - t_min + 1e-9)
+
+    # Normalize precip: higher precip -> closer to 1, then invert to get dryness
+    p_min, p_max = np.nanmin(p), np.nanmax(p)
+    pr_norm = (p - p_min) / (p_max - p_min + 1e-9)
+    dry_norm = 1.0 - pr_norm  # higher when precip is lower
+
+    # Optional nonlinear amplification (defaults are already nonlinear with power=2)
+    heat_term = np.power(np.clip(temp_norm, 0, 1), heat_power)
+    dry_term  = np.power(np.clip(dry_norm, 0, 1),  dry_power)
+
+    stress = heat_weight * heat_term + (1 - heat_weight) * dry_term
+
+    gdf_year["climate_stress"] = stress
+    # for tooltip display
+    gdf_year["climate_stress_disp"] = (gdf_year["climate_stress"] * 100).round(2)
+
+    return gdf_year
+
+
 
 # Choropleth plotting function
 def plot_choropleth(gdf, feature, year):
@@ -193,7 +239,7 @@ def main():
 
     # Sidebar: select active tab
     # active_tab = st.sidebar.radio("Select App Section", ["Exploration", "Model Builder"])
-    tab1, tab2, tab3 = st.tabs(["Exploration", "Model Builder", "Data Dictionary"])
+    tab1, tab_stress, tab2, tab3 = st.tabs(["Exploration", "Climate Stress", "Model Builder", "Data Dictionary"])
 
     # Exploration Sidebar Controls
     # Tabs
@@ -233,6 +279,71 @@ def main():
         # else:
             # st.info("Switch to Exploration tab to see observed data.")
 
+    # Climate Stress
+    with tab_stress:
+        st.header("Climate Stress Controls")
+        st.write(
+            "Climate stress is a continuous index (higher = worse) that increases with **higher temperature** "
+            "and **lower precipitation**. Nonlinear exponents let extremes matter more."
+        )
+
+        col1, col2 = st.columns([1, 2])
+
+        with col1:
+            # Choose year
+            stress_year = st.slider(
+                "Select Year",
+                min_value=min(years),
+                max_value=max(years),
+                value=max(years),
+                key="stress_year_slider",
+            )
+
+            # Nonlinearity controls
+            heat_power = st.slider(
+                "Heat nonlinearity (power on normalized temperature)",
+                min_value=0.5,
+                max_value=5.0,
+                value=2.0,
+                step=0.1,
+            )
+
+            dry_power = st.slider(
+                "Dryness nonlinearity (power on normalized dryness)",
+                min_value=0.5,
+                max_value=5.0,
+                value=2.0,
+                step=0.1,
+            )
+
+            heat_weight = st.slider(
+                "Weight on heat vs dryness (0 = all dryness, 1 = all heat)",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.5,
+                step=0.05,
+            )
+
+        st.divider()
+
+        # Build stress-year GDF (use mean dataset for interpretability)
+        stress_gdf_year = add_climate_stress_metric(
+            merged_avg,
+            year=stress_year,
+            temp_col="tmmx",
+            pr_col="pr",
+            heat_power=heat_power,
+            dry_power=dry_power,
+            heat_weight=heat_weight,
+        )
+
+        # Reuse your choropleth function by plotting the computed column
+        st.header(f"Climate Stress Map – {stress_year}")
+        plot_choropleth(stress_gdf_year, "climate_stress", stress_year)
+
+        st.caption("Tip: If you increase the powers above 1, counties in the hottest/driest tail will stand out much more.")
+
+    
     # Tab 2: Model Builder
     with tab2:
         st.header("Model Builder Controls")
