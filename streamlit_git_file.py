@@ -465,12 +465,7 @@ def main():
             else:
                 l1_ratio = None
 
-            pred_year = st.selectbox(
-                "Select Year to Visualize Predictions:",
-                years,
-                index=len(years)-1
-            )
-
+            
         st.divider()
 
         if len(model_features) == 0:
