@@ -376,7 +376,7 @@ def main():
 
             # Nonlinearity controls
             heat_power = st.slider(
-                "Heat nonlinearity (power on normalized temperature)",
+                "Heat nonlinearity",
                 min_value=0.5,
                 max_value=5.0,
                 value=2.0,
@@ -384,7 +384,7 @@ def main():
             )
 
             dry_power = st.slider(
-                "Dryness nonlinearity (power on normalized dryness)",
+                "Dryness nonlinearity",
                 min_value=0.5,
                 max_value=5.0,
                 value=2.0,
