@@ -17,7 +17,10 @@ import geopandas as gpd
 import streamlit as st
 import pydeck as pdk
 import numpy as np
-
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import Ridge, Lasso, ElasticNet
 
 # Preprocessing
 @st.cache_data
@@ -73,6 +76,20 @@ def kde_1d(data, num_points=200, bandwidth=None):
 
     density /= (len(data) * bandwidth * np.sqrt(2 * np.pi))
     return xs, density
+
+def make_model_pipeline(model_choice, alpha, l1_ratio=None):
+    if model_choice == "Ridge":
+        reg = Ridge(alpha=alpha)
+    elif model_choice == "Lasso":
+        reg = Lasso(alpha=alpha)
+    else:
+        reg = ElasticNet(alpha=alpha, l1_ratio=l1_ratio)
+
+    return Pipeline([
+        ("imputer", SimpleImputer(strategy="median")),
+        ("scaler", StandardScaler()),
+        ("reg", reg),
+    ])
 
 FEATURE_UNITS = {
     "yield": "bu/acre",
@@ -431,26 +448,8 @@ def main():
             X_test = test[model_features].values
             y_test = test["yield"].values
 
-            # Select model based on user choice
-            from sklearn.preprocessing import StandardScaler
-            from sklearn.pipeline import Pipeline
-            
-            if model_choice == "Ridge":
-                model = Pipeline([
-                    ("scaler", StandardScaler()),
-                    ("reg", Ridge(alpha=alpha))
-                ])
-            elif model_choice == "Lasso":
-                model = Pipeline([
-                    ("scaler", StandardScaler()),
-                    ("reg", Lasso(alpha=alpha))
-                ])
-            elif model_choice == "Elastic Net":
-                model = Pipeline([
-                    ("scaler", StandardScaler()),
-                    ("reg", ElasticNet(alpha=alpha, l1_ratio=l1_ratio))
-                ])
-            
+            model = make_model_pipeline(model_choice, alpha, l1_ratio)
+
             # Train + predict
             model.fit(X_train, y_train)
             y_pred = model.predict(X_test)
@@ -473,6 +472,50 @@ def main():
         st.subheader("Model Performance (LOYO)")
         st.dataframe(metrics_df)
 
+        # Final model fit on all data for scenario prediction
+        final_model = make_model_pipeline(model_choice, alpha, l1_ratio)
+        final_model.fit(df[model_features], df["yield"].astype(float))
+
+        st.divider()
+        st.subheader("Predict Your Scenario")
+        
+        ranges = df[model_features].agg(["min", "median", "max"]).T
+        
+        with st.form("scenario_form"):
+            st.write("Enter values for the selected features. The model will predict yield (bu/acre).")
+        
+            user_vals = {}
+            for feat in model_features:
+                default_val = float(ranges.loc[feat, "median"])
+                user_vals[feat] = st.number_input(
+                    label=f"{feat} ({FEATURE_UNITS.get(feat,'')})",
+                    value=default_val,
+                    step=0.1,
+                    format="%.4f",
+                )
+        
+            submitted = st.form_submit_button("Predict yield")
+        
+        if submitted:
+            user_X = pd.DataFrame([user_vals], columns=model_features)
+            pred = float(final_model.predict(user_X)[0])
+            st.success(f"Predicted yield: **{pred:.2f} bu/acre**")
+        
+            flags = []
+            for feat in model_features:
+                v = user_vals[feat]
+                mn = float(ranges.loc[feat, "min"])
+                mx = float(ranges.loc[feat, "max"])
+                if v < mn or v > mx:
+                    flags.append(f"- `{feat}` is outside the training range [{mn:.4f}, {mx:.4f}]")
+        
+            if flags:
+                st.warning(
+                    "Some inputs are outside the data range the model learned from, so this prediction may be less reliable:\n"
+                    + "\n".join(flags)
+                )
+
+        
         # Filter predictions for user-selected year
         plot_gdf = merged_avg.merge(
             predictions_df[predictions_df["year"] == pred_year],
