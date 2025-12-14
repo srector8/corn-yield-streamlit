@@ -77,6 +77,65 @@ def kde_1d(data, num_points=200, bandwidth=None):
     density /= (len(data) * bandwidth * np.sqrt(2 * np.pi))
     return xs, density
 
+def ale_1d(model, X: pd.DataFrame, feature: str, n_bins: int = 20):
+    """
+    1D Accumulated Local Effects (ALE) for a fitted sklearn model.
+    Works with Pipelines (imputer/scaler/reg) because we call model.predict on full X.
+
+    Returns a dataframe with columns: ['x', 'ale'] where x is bin center.
+    """
+    X = X.copy()
+
+    # Feature values (may contain NaNs)
+    x = X[feature].astype(float)
+
+    # Use quantile bins on observed (non-null) values
+    x_nonnull = x.dropna()
+    if x_nonnull.nunique() < 2:
+        # Not enough variation
+        return pd.DataFrame({"x": [], "ale": []})
+
+    # Bin edges (quantiles); unique to avoid zero-width bins
+    edges = np.quantile(x_nonnull, np.linspace(0, 1, n_bins + 1))
+    edges = np.unique(edges)
+    if len(edges) < 3:
+        return pd.DataFrame({"x": [], "ale": []})
+
+    # Assign each row to a bin (only for non-null rows)
+    bins = pd.cut(x, bins=edges, include_lowest=True, labels=False)
+
+    # For each bin k, compute avg local effect:
+    # E[ f(x_upper, x_-j) - f(x_lower, x_-j) | x in bin k ]
+    local_effects = []
+    centers = []
+
+    for k in range(len(edges) - 1):
+        idx = bins == k
+        if idx.sum() == 0:
+            local_effects.append(0.0)
+            centers.append((edges[k] + edges[k + 1]) / 2)
+            continue
+
+        X_low = X.loc[idx].copy()
+        X_high = X.loc[idx].copy()
+
+        X_low[feature] = edges[k]
+        X_high[feature] = edges[k + 1]
+
+        pred_high = model.predict(X_high)
+        pred_low = model.predict(X_low)
+
+        local_effect = float(np.mean(pred_high - pred_low))
+        local_effects.append(local_effect)
+        centers.append((edges[k] + edges[k + 1]) / 2)
+
+    # Accumulate and center (ALE is defined up to a constant; center to mean 0)
+    ale_vals = np.cumsum(local_effects)
+    ale_vals = ale_vals - np.mean(ale_vals)
+
+    return pd.DataFrame({"x": centers, "ale": ale_vals})
+
+
 def make_model_pipeline(model_choice, alpha, l1_ratio=None):
     if model_choice == "Ridge":
         reg = Ridge(alpha=alpha)
@@ -515,16 +574,35 @@ def main():
                     + "\n".join(flags)
                 )
 
+        st.divider()
+        st.subheader("Feature Effect (1D ALE)")
         
-        # Filter predictions for user-selected year
-        plot_gdf = merged_avg.merge(
-            predictions_df[predictions_df["year"] == pred_year],
-            on=["id2", "year"],
-            how="left"
+        ale_feature = st.selectbox(
+            "Select a feature to view its effect on predicted yield",
+            model_features,
+            index=0
         )
+        
+        n_bins = st.slider("ALE bins", min_value=5, max_value=50, value=20, step=1)
+        
+        ale_df = ale_1d(final_model, df[model_features], ale_feature, n_bins=n_bins)
+        
+        if ale_df.empty:
+            st.info("Not enough variation in this feature to compute ALE.")
+        else:
+            st.caption("ALE is centered at 0. Positive values mean higher predicted yield relative to average.")
+        
+            # Streamlit line chart wants index; keep it simple
+            plot_df = ale_df.set_index("x")[["ale"]]
+            st.line_chart(plot_df)
+        
+            st.write(
+                f"Interpretation: moving **{ale_feature}** to the right changes predicted yield by the amount shown "
+                f"(holding other features at their observed values within each bin)."
+            )
 
-        st.subheader(f"Predicted Yield Map – {pred_year}")
-        plot_choropleth(plot_gdf, "predicted_yield", pred_year)
+
+        
     # Tab 3: Data Dictionary
     with tab3:
         st.header("Data Dictionary")
