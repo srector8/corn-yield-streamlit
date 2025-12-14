@@ -359,8 +359,7 @@ def main():
     with tab_stress:
         st.header("Climate Stress Controls")
         st.write(
-            "Climate stress is a continuous index (higher = worse) that increases with **higher temperature** "
-            "and **lower precipitation**. Exponents control severity, and weight controls importance."
+            "The Climate Stress tab visualizes a continuous county-level climate stress index designed to capture the joint effects of heat and moisture availability on crop conditions. The index increases as growing-season temperatures rise and precipitation declines, reflecting well-established agronomic stress mechanisms. Each component is first normalized to allow comparability across counties and years. Exponents are applied to temperature and precipitation terms to introduce nonlinearity, allowing extreme heat or drought conditions to contribute disproportionately more stress than moderate deviations—consistent with threshold-based crop damage responses. A weighting parameter then controls the relative importance of heat versus moisture stress, enabling users to explore scenarios in which crops are more sensitive to thermal stress, water stress, or a balanced combination of both. Together, exponents govern severity while weights govern importance, yielding a flexible yet interpretable stress metric that avoids arbitrary percentile cutoffs while remaining grounded in climate–yield dynamics."
         )
 
         col1, col2 = st.columns([1, 2])
