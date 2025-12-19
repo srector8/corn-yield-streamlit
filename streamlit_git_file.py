@@ -36,6 +36,9 @@ def preprocess_data(file_path_avg, file_path_cv, shapefile_path):
     merged_avg = shp_gdf.merge(avg_df, left_on='ID_2', right_on='id2')
     merged_cv = shp_gdf.merge(cv_df, left_on='ID_2', right_on='id2')
 
+    merged_avg = merged_avg[merged_avg["NAME_2"] != "Door"]
+    merged_cv  = merged_cv[merged_cv["NAME_2"] != "Door"]
+
     # Simplify geometry
     merged_avg['geometry'] = merged_avg['geometry'].simplify(0.01)
     merged_cv['geometry'] = merged_cv['geometry'].simplify(0.01)
@@ -43,6 +46,7 @@ def preprocess_data(file_path_avg, file_path_cv, shapefile_path):
     years = sorted(avg_df['year'].unique())
 
     return merged_avg, merged_cv, years
+
 
 
 from PIL import Image
